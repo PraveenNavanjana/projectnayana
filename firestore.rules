@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow read/write access to users collection
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+    
+    // Allow read/write access to visitors collection
+    match /visitors/{visitorId} {
+      allow read, write: if true;
+    }
+    
+    // Allow read/write access to audit_logs collection
+    match /audit_logs/{logId} {
+      allow read, write: if true;
+    }
+    
+    // Default rule - deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
