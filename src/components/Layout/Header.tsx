@@ -68,12 +68,12 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex justify-between items-center py-4">
           {/* Logo and Title */}
           <div className="flex items-center space-x-4">
-            <div className="flex items-center justify-center w-12 h-12 bg-blue-600 rounded-lg">
-              <Shield className="w-7 h-7 text-white" />
+            <div className="flex items-center justify-center w-14 h-14 bg-white rounded-lg">
+              <img src="src/logo.jpg" alt="Nazareth Care Logo" className="w-12 h-12 object-contain" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Visitor Management</h1>
-              <p className="text-sm text-gray-600">Nursing Home Security System</p>
+              <h1 className="text-2xl font-bold text-gray-900">Nazareth Hospital Visitor Management</h1>
+              <p className="text-sm text-gray-600">Secure Visitor System</p>
             </div>
           </div>
 
