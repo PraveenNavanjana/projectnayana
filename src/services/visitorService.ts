@@ -15,6 +15,10 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { Visitor, HealthScreening, AuditLog } from '../types';
+import {
+  startOfDay as dateFnsStartOfDay,
+  endOfDay as dateFnsEndOfDay,
+} from 'date-fns';
 
 export class VisitorService {
   private visitorsCollection = collection(db, 'visitors');
@@ -109,6 +113,28 @@ export class VisitorService {
     }
   }
 
+
+  async getVisitorsByDateRange(startDate: Date, endDate: Date): Promise<Visitor[]> {
+    try {
+      const q = query(
+        this.visitorsCollection,
+        where('checkInTime', '>=', Timestamp.fromDate(dateFnsStartOfDay(startDate))),
+        where('checkInTime', '<=', Timestamp.fromDate(dateFnsEndOfDay(endDate))),
+        orderBy('checkInTime', 'desc')
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(d => this.mapDocToVisitor(d));
+    } catch (error: any) {
+      console.warn('Date range query failed (index missing?), falling back...', error);
+
+      const all = await getDocs(this.visitorsCollection);
+      return all.docs
+        .map(d => this.mapDocToVisitor(d))
+        .filter(v => v.checkInTime && v.checkInTime >= dateFnsStartOfDay(startDate) && v.checkInTime <= dateFnsEndOfDay(endDate))
+        .sort((a, b) => (b.checkInTime?.getTime() || 0) - (a.checkInTime?.getTime() || 0));
+    }
+  }
+  
   // ──────────────────────────────────────────────────────────────
   // Check-out
   // ──────────────────────────────────────────────────────────────
@@ -154,37 +180,58 @@ export class VisitorService {
     }
   }
 
+  
+
   // ──────────────────────────────────────────────────────────────
   // Get All Visitors from Today (for stats)
   // ──────────────────────────────────────────────────────────────
-  async getTodayVisitors(): Promise<Visitor[]> {
-    try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+ async getTodayVisitors(): Promise<Visitor[]> {
+  try {
+    // Start of today (00:00:00.000)
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
 
-      const q = query(
-        this.visitorsCollection,
-        where('checkInTime', '>=', Timestamp.fromDate(today)),
-        orderBy('checkInTime', 'desc')
-      );
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
 
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => this.mapDocToVisitor(doc));
-    } catch (error: any) {
-      if (error.code === 'failed-precondition') {
-        console.warn('Index missing for today query, using fallback');
-        const midnight = new Date();
-        midnight.setHours(0, 0, 0, 0);
-        const fallback = query(this.visitorsCollection, where('checkInTime', '>=', Timestamp.fromDate(midnight)));
-        const snapshot = await getDocs(fallback);
-        const visitors = snapshot.docs.map(doc => this.mapDocToVisitor(doc));
-        return visitors.sort((a, b) => (b.checkInTime?.getTime() || 0) - (a.checkInTime?.getTime() || 0));
-      }
-      console.error('getTodayVisitors error:', error);
-      return [];
+    // Try efficient indexed query first
+    const q = query(
+      this.visitorsCollection,
+  
+      orderBy('checkInTime', 'desc')
+    );
+
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => this.mapDocToVisitor(doc));
+
+  } catch (error: any) {
+    if (error.code === 'failed-precondition') {
+      console.warn('Composite index missing. Falling back to client-side filtering...');
+
+      // Fallback: Get ALL visitors and filter locally
+      const allSnapshot = await getDocs(this.visitorsCollection);
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      const todayVisitors = allSnapshot.docs
+        .map(doc => this.mapDocToVisitor(doc))
+        .filter(visitor => {
+          if (!visitor.checkInTime) return false;
+          return visitor.checkInTime >= todayStart;
+        })
+        .sort((a, b) => {
+          const timeA = a.checkInTime?.getTime() || 0;
+          const timeB = b.checkInTime?.getTime() || 0;
+          return timeB - timeA; // newest first
+        });
+
+      return todayVisitors;
     }
-  }
 
+    console.error('getTodayVisitors error:', error);
+    return [];
+  }
+}
   // ──────────────────────────────────────────────────────────────
   // Real-time subscription to active visitors
   // ──────────────────────────────────────────────────────────────

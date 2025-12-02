@@ -34,15 +34,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onL
     }
   };
 
-  const handleCreateUser = async (userData: Omit<User, 'id' | 'createdAt'>) => {
-    try {
-      await authService.createUser(userData);
-      setShowCreateModal(false);
-      loadUsers();
-    } catch (err: any) {
-      setError(err.message || 'Failed to create user');
-    }
-  };
+  // const handleCreateUser = async (userData: Omit<User, 'id' | 'createdAt'>) => {
+  //   try {
+  //     await authService.createUser(userData);
+  //     setShowCreateModal(false);
+  //     loadUsers();
+  //   } catch (err: any) {
+  //     setError(err.message || 'Failed to create user');
+  //   }
+  // };
 
   const handleUpdateUser = async (userId: string, updates: Partial<User>) => {
     try {
@@ -126,21 +126,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onL
         </div>
       `;
 
-      const printData: PrintData = {
-        type: 'report',
-        content: {
-          title: 'User Management Report',
-          date: new Date().toLocaleDateString(),
-          html: userListHTML
-        }
-      };
+      // const printData: PrintData = {
+      //   type: 'report',
+      //   content: {
+      //     title: 'User Management Report',
+      //     date: new Date().toLocaleDateString(),
+      //     html: userListHTML
+      //   }
+      // };
 
-      const success = await printService.printReport(printData);
-      if (success) {
-        alert('User list sent to printer successfully!');
-      } else {
-        alert('Printing failed. Please try again or check your printer connection.');
-      }
+      //const success = await printService.printReport(printData);
+      // if (success) {
+      //   alert('User list sent to printer successfully!');
+      // } else {
+      //   alert('Printing failed. Please try again or check your printer connection.');
+      // }
     } catch (error) {
       console.error('Error printing user list:', error);
       alert('Printing failed. Please try again.');
@@ -384,12 +384,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onL
       </div>
 
       {/* Modals */}
-      {showCreateModal && (
+      {/* {showCreateModal && (
         <CreateUserModal
           onClose={() => setShowCreateModal(false)}
           onCreateUser={handleCreateUser}
         />
-      )}
+      )} */}
 
       {editingUser && (
         <EditUserModal
